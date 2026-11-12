@@ -1,0 +1,646 @@
+/* App frame: top bar / [preview | rail] / footer.
+   Replaces the old stack of position:fixed overlays with a real grid, so the
+   preview is a bounded artboard you can actually see the edges of. */
+
+.app {
+  position: relative;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr) var(--footer-h);
+  grid-template-columns: minmax(0, 1fr) var(--rail-w);
+  grid-template-areas:
+    "topbar  topbar"
+    "preview rail"
+    "footer  footer";
+}
+
+/* Backdrop-filter over an opaque ground shows nothing, so give the glass
+   something to blur. Keyed to the adaptive accent, which already tracks the
+   artwork — the chrome quietly picks up the piece being made. */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: var(--z-base);
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 80% 14%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 70%),
+    radial-gradient(48% 44% at 16% 88%, color-mix(in srgb, var(--accent-strong) 16%, transparent), transparent 70%);
+  filter: blur(40px);
+  opacity: 0.55;
+  transition: opacity var(--t-panel) var(--ease-out);
+}
+
+.app > * {
+  position: relative;
+  z-index: var(--z-chrome);
+}
+
+/* ---- Top bar ---- */
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: 0 var(--s-5);
+  border-bottom: 1px solid var(--line-1);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex: none;
+}
+
+.topbar-name {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
+
+.topbar-spacer {
+  flex: 1;
+  min-width: var(--s-2);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: none;
+}
+
+.topbar-readout {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  flex: none;
+}
+
+.ro-hex,
+.ro-dim {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.ro-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid var(--line-2);
+}
+
+/* The 19px glass tile in the corner: a miniature of the product itself. */
+.brand-mark {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex: none;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.06) 55%,
+    rgba(255, 255, 255, 0.02)
+  );
+  backdrop-filter: blur(3px) saturate(1.35) brightness(1.12);
+  -webkit-backdrop-filter: blur(3px) saturate(1.35) brightness(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.75),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.3),
+    0 2px 6px -2px rgba(0, 0, 0, 0.55);
+}
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(78% 60% at 28% 22%, rgba(255, 255, 255, 0.55), transparent 60%);
+  pointer-events: none;
+}
+
+/* ---- Preview: a bounded artboard on a transparency ground ---- */
+.preview {
+  grid-area: preview;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--s-5) var(--s-3) var(--s-5) var(--s-5);
+}
+
+.artboard-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-2xl);
+  border: 1px solid var(--line-1);
+  background: var(--bg-inset);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+/* The checkerboard is what finally makes the Transparent PNG toggle legible. */
+.artboard-ground {
+  position: absolute;
+  inset: 0;
+  background-color: #0c0c0e;
+  background-image:
+    linear-gradient(45deg, #15151a 25%, transparent 25%, transparent 75%, #15151a 75%),
+    linear-gradient(45deg, #15151a 25%, transparent 25%, transparent 75%, #15151a 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+
+/* Sized to the selected export ratio, so what you see is what you get.
+   Zoom is a transform on this box, never a change of render resolution --
+   tileSize and grout are in pixels, so re-rendering larger would redesign the
+   artwork instead of magnifying it. */
+.artboard {
+  position: relative;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: var(--e-3);
+  transform-origin: center center;
+  transition: width var(--t-panel) var(--ease-out),
+    height var(--t-panel) var(--ease-out);
+}
+
+.stage-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.artboard-label {
+  position: absolute;
+  top: var(--s-4);
+  left: var(--s-5);
+  pointer-events: none;
+}
+
+.artboard-tools {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  display: flex;
+  gap: var(--s-1);
+}
+
+.artboard-zoom {
+  position: absolute;
+  right: var(--s-3);
+  bottom: var(--s-3);
+  display: flex;
+  gap: var(--s-1);
+}
+
+.artboard-meta {
+  position: absolute;
+  left: var(--s-4);
+  bottom: var(--s-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--bg-1) 70%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line-1);
+  transition: color var(--t-control), background var(--t-control),
+    border-color var(--t-control), transform var(--t-press) var(--ease-out);
+}
+.icon-btn:hover {
+  color: var(--text-1);
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.icon-btn:active {
+  transform: scale(0.94);
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- Stage error ---- */
+.stage-error {
+  max-width: 34ch;
+  padding: var(--s-6);
+  text-align: center;
+  color: var(--text-2);
+}
+.stage-error h2 {
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-xl);
+  color: var(--text-1);
+}
+.stage-error p {
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-md);
+}
+.stage-error-sub {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+/* ---- Rail: discrete glass cards, not one flat scroll ---- */
+.rail {
+  grid-area: rail;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-5) var(--s-8) var(--s-3);
+}
+
+.card {
+  flex: none;
+  border-radius: var(--r-xl);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--glass-rim), var(--e-2);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+}
+
+/* A div, not a button: the reset lives in the same row, and nesting buttons
+   is invalid. */
+.card-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: left;
+  transition: color var(--t-control);
+}
+.card-toggle:hover .card-title {
+  color: var(--text-2);
+}
+.card-toggle:hover .card-chevron {
+  color: var(--text-2);
+}
+
+.card-title {
+  flex: 1;
+  min-width: 0;
+  transition: color var(--t-control);
+}
+
+.card-chevron {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t-control) var(--ease-out);
+}
+.card[data-open="false"] .card-chevron {
+  transform: rotate(-90deg);
+}
+
+.card-reset {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -4px 0;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity var(--t-control), color var(--t-control),
+    background var(--t-control), transform var(--t-press) var(--ease-out);
+}
+.card:hover .card-reset,
+.card-reset:focus-visible {
+  opacity: 1;
+}
+.card-reset:hover {
+  color: var(--text-1);
+  background: var(--bg-3);
+}
+.card-reset:active {
+  transform: scale(0.9) rotate(-40deg);
+}
+
+.card-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* Clips the inner box. On a 0fr row a border-box grid item still cannot
+     shrink below its own padding, so without this every collapsed card keeps
+     16px of dead space under its title. */
+  overflow: hidden;
+  transition: grid-template-rows var(--t-panel) var(--ease-in-out);
+}
+.card[data-open="false"] .card-body {
+  grid-template-rows: 0fr;
+}
+
+.card-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: 0 var(--s-5) var(--s-5);
+  opacity: 1;
+  transition: opacity var(--t-panel) var(--ease-out),
+    padding-bottom var(--t-panel) var(--ease-in-out);
+}
+.card[data-open="false"] .card-body-inner {
+  opacity: 0;
+  /* Collapse the padding too, not just the row. A border-box item cannot be
+     shorter than its own padding, and that floor propagates up as the grid
+     track minimum — clipping hides it but the height is still reserved. */
+  padding-bottom: 0;
+}
+
+/* ---- Footer ---- */
+.footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 0 var(--s-5);
+  border-top: 1px solid var(--line-1);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.footer-mid {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-end {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.footer a {
+  color: var(--text-3);
+  text-decoration: none;
+  transition: color var(--t-control);
+}
+.footer a:hover {
+  color: var(--text-1);
+}
+
+/* ---- Presets ---- */
+.presets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+
+.preset {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-inset);
+  border: 1px solid var(--line-1);
+  transition: transform var(--t-press) var(--ease-out),
+    border-color var(--t-control), box-shadow var(--t-control);
+}
+.preset:hover {
+  border-color: var(--line-3);
+}
+.preset[data-on="true"] {
+  border-color: var(--accent);
+  /* Follows the adaptive accent instead of a hard-coded violet that visibly
+     desynced from it. */
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 18px -8px var(--accent-soft);
+}
+.preset:active {
+  transform: scale(0.97);
+}
+
+.preset-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preset-name {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 14px var(--s-3) var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: #fff;
+  text-align: left;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.preset-kbd {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-family: var(--font-num);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ---- Mobile: the rail becomes a bottom sheet ---- */
+.panel-scrim,
+.panel-fab,
+.panel-handle {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "topbar"
+      "preview"
+      "footer";
+  }
+
+  .preview {
+    padding: var(--s-4);
+  }
+
+  .rail {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: var(--z-rail);
+    height: min(82vh, 640px);
+    padding: var(--s-3) var(--s-4) var(--s-8);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-top: 1px solid var(--line-2);
+    border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+    box-shadow: var(--e-3);
+    transform: translateY(100%);
+    transition: transform var(--t-panel) var(--ease-drawer);
+  }
+  .app[data-panel-open="true"] .rail {
+    transform: translateY(0);
+  }
+
+  .panel-handle {
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 4px;
+    margin: 0 auto var(--s-3);
+    border-radius: var(--r-pill);
+    background: var(--line-3);
+  }
+
+  .panel-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-scrim);
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-panel) var(--ease-out);
+  }
+  .app[data-panel-open="true"] .panel-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .panel-fab {
+    display: block;
+    position: fixed;
+    right: var(--s-5);
+    bottom: calc(var(--footer-h) + var(--s-4));
+    z-index: var(--z-fab);
+    padding: var(--s-3) var(--s-5);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: #0a0a0c;
+    background: #fff;
+    box-shadow: var(--e-3);
+    transition: transform var(--t-press) var(--ease-out);
+  }
+  .panel-fab:active {
+    transform: scale(0.96);
+  }
+
+  .footer-mid {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --topbar-h: 54px;
+  }
+  .topbar {
+    padding: 0 var(--s-4);
+  }
+  .topbar-readout {
+    display: none;
+  }
+  .footer {
+    padding: 0 var(--s-4);
+  }
+}
+
+/* ---- Saved looks ---- */
+.preset-saved {
+  display: block;
+  padding: 0;
+}
+
+.preset-open {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.preset-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-xs);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  opacity: 0;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity var(--t-control), background var(--t-control);
+}
+.preset-saved:hover .preset-del,
+.preset-del:focus-visible {
+  opacity: 1;
+}
+.preset-del:hover {
+  background: var(--danger);
+  color: #1a0a0a;
+}
+
+.save-row {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.save-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-inset);
+  border: 1px solid var(--line-2);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+}
+.save-input::placeholder {
+  color: var(--text-3);
+}
+.save-input:focus {
+  border-color: var(--line-3);
+}

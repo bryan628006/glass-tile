@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Glass Tile">
+  <rect width="32" height="32" rx="7" fill="#0a0a0c"/>
+  <ellipse cx="16" cy="19" rx="11" ry="9" fill="#a78bfa" opacity="0.22"/>
+  <ellipse cx="16" cy="17" rx="8" ry="6" fill="#c7b8ff" opacity="0.12"/>
+  <rect x="8" y="7.5" width="16" height="16" rx="5.25" fill="url(#tile)" stroke="rgba(255,255,255,0.24)" stroke-width="0.75"/>
+  <rect x="8" y="7.5" width="16" height="16" rx="5.25" fill="url(#rim)" opacity="0.9"/>
+  <ellipse cx="12.5" cy="11.5" rx="4.5" ry="3.2" fill="url(#spec)" opacity="0.85"/>
+  <defs>
+    <linearGradient id="tile" x1="8" y1="7.5" x2="24" y2="23.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.34)"/>
+      <stop offset="52%" stop-color="rgba(255,255,255,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="8" y1="7.5" x2="8" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.55)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <radialGradient id="spec" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12.5 11.5) scale(4.5 3.2)">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.72)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+</svg>

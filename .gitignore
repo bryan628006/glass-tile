@@ -1,0 +1,20 @@
+node_modules
+dist
+.vercel
+*.local
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
+
+.vercel
+
+# Saved settings from the local backend
+server/data/
+
+# Local tooling / scratch
+.remember
+.claude
+.agents
+.ui-snapshot-polished
+skills-lock.json
